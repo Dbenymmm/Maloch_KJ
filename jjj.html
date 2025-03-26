@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <title>Kniha jízd – Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+new Chart(document.getElementById('dailyLineChart'), {
+  type: 'line',
+  data: {
+    labels: ['04.11', '05.11', '06.11', '07.11', '08.11', '09.11', '10.11', '11.11', '12.11', '13.11', '14.11', '15.11', '16.11', '18.11', '19.11', '20.11', '21.11', '22.11', '23.11', '24.11', '25.11', '27.11', '28.11', '29.11', '30.11', '02.12', '03.12'],
+    datasets: [{
+      label: 'Ujeté km za den',
+      data: [95, 85, 120, 100, 110, 20, 130, 95, 95, 95, 170, 92, 65, 95, 190, 170, 110, 95, 120, 170, 170, 90, 110, 120, 120, 70, 70],
+      borderColor: '#014421',
+      tension: 0.3,
+      fill: false
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top'
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  }
+});
+</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      color: #1e2d24;
+    }
+    header {
+      background-color: #014421;
+      color: white;
+      padding: 1em;
+      text-align: center;
+    }
+    section {
+      padding: 2em;
+    }
+    .info {
+      background-color: #e6f0eb;
+      border-left: 5px solid #014421;
+      padding: 1em;
+      margin-bottom: 2em;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1em;
+    }
+    .controls button, .controls select {
+      padding: 0.5em 1em;
+      font-size: 1em;
+    }
+    .table-container {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2em;
+    }
+    th, td {
+      border: 1px solid #014421;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #014421;
+      color: white;
+    }
+    iframe, .map {
+      width: 100%;
+      height: 500px;
+      border: none;
+      margin-bottom: 2em;
+    }
+    .charts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2em;
+    }
+    .chart {
+      flex: 1 1 400px;
+    }
+    .summary {
+      background-color: #f0f8f4;
+      border: 1px solid #014421;
+      padding: 1em;
+      margin-bottom: 2em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Kniha jízd – Dashboard</h1>
+  </header>
+  <section>
+    <div class="info">
+      <p><strong>Firma:</strong> OK Group a.s., Mánesova 16, Brno 602 00</p>
+      <p><strong>IČO:</strong> 25561804</p>
+      <p><strong>Vozidlo:</strong> Škoda Superb</p>
+      <p><strong>RZ:</strong> 2BZ 1888</p>
+      <p><strong>PHM:</strong> Benzín</p>
+      <p><strong>Řidič/odpovědná osoba:</strong> Maloch Jan</p>
+    </div>
+    <div class="controls">
+      <div>
+        <label for="purposeFilter">Filtrovat podle účelu: </label>
+        <select id="purposeFilter" onchange="filterTable()">
+          <option value="">Vše</option>
+          <option value="Návštěva dodavatele">Návštěva dodavatele</option>
+          <option value="Obchodní jednání">Obchodní jednání</option>
+          <option value="Kontrola provozu">Kontrola provozu</option>
+          <option value="Školení zaměstnanců">Školení zaměstnanců</option>
+          <option value="Setkání s klientem">Setkání s klientem</option>
+          <option value="Obchodní schůzka">Obchodní schůzka</option>
+          <option value="Firemní porada">Firemní porada</option>
+          <option value="Návštěva pobočky">Návštěva pobočky</option>
+          <option value="Návrat na centrálu a tankování">Návrat na centrálu a tankování</option>
+        </select>
+      </div>
+      <button onclick="exportPDF()">Export do PDF</button>
+    </div>
+    <div class="summary">
+      <h2>Souhrn</h2>
+      <p><strong>Celkový počet jízd:</strong> 31</p>
+      <p><strong>Celkový počet km:</strong> 2972 km</p>
+      <p><strong>Průměrná vzdálenost na jednu jízdu:</strong> 95,9 km</p>
+      <p><strong>Spotřeba PHM:</strong> 178,3 l (při 6 l/100 km)</p>
+      <p><strong>Odhadované náklady (42 Kč/l):</strong> 7489 Kč</p>
+    </div>
+    <h2>Jízdy</h2>
+<p><em>Tabulka obsahuje veškeré jízdy včetně tankování, trasy, ujetých kilometrů a účelu cesty.</em></p>
+    <div class="table-container">
+      <table id="rideTable">
+  <thead>
+    <tr>
+      <th>Datum</th>
+      <th>Tankování</th>
+      <th>Trasa</th>
+      <th>Počet km</th>
+      <th>Účel cesty</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>04.11.2024</td><td>56</td><td>Praha – Spořilov</td><td></td><td>TANKOVÁNÍ</td></tr>
+    <tr><td>04.11.2024</td><td></td><td>Praha – Plzeň</td><td>95</td><td>Návštěva dodavatele</td></tr>
+    <tr><td>05.11.2024</td><td></td><td>Plzeň – Karlovy Vary</td><td>85</td><td>Obchodní jednání</td></tr>
+    <tr><td>06.11.2024</td><td></td><td>Karlovy Vary – Ústí nad Labem</td><td>120</td><td>Kontrola provozu</td></tr>
+    <tr><td>07.11.2024</td><td></td><td>Ústí nad Labem – Liberec</td><td>100</td><td>Školení zaměstnanců</td></tr>
+    <tr><td>08.11.2024</td><td></td><td>Liberec – Hradec Králové</td><td>110</td><td>Setkání s klientem</td></tr>
+    <tr><td>09.11.2024</td><td></td><td>Hradec Králové – Pardubice</td><td>20</td><td>Obchodní schůzka</td></tr>
+    <tr><td>10.11.2024</td><td></td><td>Pardubice – Jihlava</td><td>130</td><td>Firemní porada</td></tr>
+    <tr><td>11.11.2024</td><td></td><td>Jihlava – Brno</td><td>95</td><td>Návštěva pobočky</td></tr>
+    <tr><td>12.11.2024</td><td></td><td>Brno – Zlín</td><td>95</td><td>Kontrola provozu</td></tr>
+    <tr><td>13.11.2024</td><td></td><td>Zlín – Brno</td><td>95</td><td>Návrat na centrálu a tankování</td></tr>
+    <tr><td>14.11.2024</td><td>61</td><td>Brno – Jihlavská</td><td></td><td>TANKOVÁNÍ</td></tr>
+    <tr><td>14.11.2024</td><td></td><td>Brno – Ostrava</td><td>170</td><td>Návštěva pobočky</td></tr>
+    <tr><td>15.11.2024</td><td></td><td>Ostrava – Olomouc</td><td>92</td><td>Setkání s klientem</td></tr>
+    <tr><td>16.11.2024</td><td></td><td>Olomouc – Zlín</td><td>65</td><td>Školení</td></tr>
+    <tr><td>18.11.2024</td><td></td><td>Zlín – Brno</td><td>95</td><td>Návrat na centrálu</td></tr>
+    <tr><td>19.11.2024</td><td></td><td>Brno – Jihlava – Brno</td><td>190</td><td>Obchodní jednání</td></tr>
+    <tr><td>20.11.2024</td><td></td><td>Brno – České Budějovice</td><td>170</td><td>Návštěva dodavatele</td></tr>
+    <tr><td>21.11.2024</td><td></td><td>České Budějovice – Plzeň</td><td>110</td><td>Porada s klientem</td></tr>
+    <tr><td>22.11.2024</td><td></td><td>Plzeň – Praha</td><td>95</td><td>Firemní akce</td></tr>
+    <tr><td>23.11.2024</td><td></td><td>Praha – Hradec Králové</td><td>120</td><td>Školení</td></tr>
+    <tr><td>24.11.2024</td><td></td><td>Hradec Králové – Brno</td><td>170</td><td>Návrat na pracoviště</td></tr>
+    <tr><td>25.11.2024</td><td></td><td>Brno – Hradec Králové</td><td>170</td><td>Cesta na místo dalšího tankování</td></tr>
+    <tr><td>26.11.2024</td><td>45</td><td>Hradec Králové – Holická</td><td></td><td>TANKOVÁNÍ</td></tr>
+    <tr><td>27.11.2024</td><td></td><td>Hradec Králové – Liberec</td><td>90</td><td>Kontrola provozu</td></tr>
+    <tr><td>28.11.2024</td><td></td><td>Liberec – Ústí nad Labem</td><td>110</td><td>Setkání s klientem</td></tr>
+    <tr><td>29.11.2024</td><td></td><td>Ústí nad Labem – Karlovy Vary</td><td>120</td><td>Školení</td></tr>
+    <tr><td>30.11.2024</td><td></td><td>Karlovy Vary – Praha</td><td>120</td><td>Firemní porada</td></tr>
+    <tr><td>02.12.2024</td><td></td><td>Praha – Mladá Boleslav</td><td>70</td><td>Návštěva provozu</td></tr>
+    <tr><td>03.12.2024</td><td></td><td>Mladá Boleslav – Praha (5. května)</td><td>70</td><td>Cesta k čerpací stanici</td></tr>
+  </tbody>
+</table>
+    </div>
+    <h2>Mapa tras a tankování</h2>
+    <div class="map">
+      <iframe src="https://umap.openstreetmap.fr/en/map/body-tankovani-cr_1017678?scaleControl=false&miniMap=true&scrollWheelZoom=true"></iframe>
+    </div>
+    <h2>Statistiky</h2>
+    <div class="charts">
+  <div class="chart">
+    <canvas id="kmChart"></canvas>
+  </div>
+  <div class="chart">
+    <canvas id="purposeChart"></canvas>
+  </div>
+  <div class="chart">
+    <canvas id="dailyLineChart"></canvas>
+  </div>
+</div>
+      <div class="chart">
+        <canvas id="purposeChart"></canvas>
+      </div>
+    </div>
+  </section>
+  <script>
+    function filterTable() {
+      const filter = document.getElementById("purposeFilter").value;
+      const table = document.getElementById("rideTable");
+      const rows = table.getElementsByTagName("tr");
+
+      for (let i = 1; i < rows.length; i++) {
+        const td = rows[i].getElementsByTagName("td")[3];
+        if (!filter || td.textContent === filter) {
+          rows[i].style.display = "";
+        } else {
+          rows[i].style.display = "none";
+        }
+      }
+    }
+
+    async function exportPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("Kniha jízd – přehled", 10, 10);
+      doc.html(document.body, {
+        callback: function (doc) {
+          doc.save("kniha-jizd.pdf");
+        },
+        x: 10,
+        y: 20
+      });
+    }
+
+    new Chart(document.getElementById('purposeChart'), {
+  plugins: [{
+    id: 'labels',
+    beforeDraw(chart) {
+      chart.options.plugins.legend.position = 'right';
+    }
+  }],
+  type: 'pie',
+  data: {
+    labels: ['Návštěva dodavatele', 'Obchodní jednání', 'Kontrola provozu', 'Školení zaměstnanců', 'Setkání s klientem', 'Obchodní schůzka', 'Firemní porada', 'Návštěva pobočky', 'Návrat na centrálu a tankování'],
+    datasets: [{
+      label: 'Podíl účelu jízd',
+      data: [2, 2, 3, 2, 2, 1, 2, 2, 2],
+      backgroundColor: [
+        '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c'
+      ]
+    }]
+  }
+});
+  </script>
+</body>
+</html>
